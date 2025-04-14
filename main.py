@@ -1,8 +1,13 @@
-# todo must be python 3.10 and not latest version
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from Augmentation import BirthdayWishAugmentor
 import Nlp
 
-# Use the vectorizer, model_tone, model_rel, rel_encoder from Nlp.py
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)  # Allow CORS from any origin (for dev)
+
+# Initialize your augmentor with NLP models and resources
 augmentor = BirthdayWishAugmentor(
     wishes_path='big_dataset.csv',
     yaml_path='Synonym_Dictionary (2).yaml',
@@ -16,13 +21,22 @@ augmentor = BirthdayWishAugmentor(
     predict_rel_fn=Nlp.predict_rel
 )
 
-# Try it out
-sample_inputs = [
-    "Write a birthday wish for my wife that's happy and rhyming",
-    "Something professional and short for my boss",
-    "Say something to my son that's funny and inspirational"
-]
+# API Endpoint to generate a birthday wish
+@app.route('/generate-wish', methods=['POST'])
+def generate_wish():
+    data = request.get_json()
 
-for text in sample_inputs:
-    print("\n" + "=" * 70)
-    augmentor.recommend(text)
+    input_text = data.get('text')
+    if not input_text:
+        return jsonify({'error': 'No text provided'}), 400
+
+    try:
+        wish = augmentor.recommend(input_text)
+        return jsonify({'wish': wish})
+    except Exception as e:
+        print(f"[ERROR] Failed to generate wish: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+# Run the app
+if __name__ == '__main__':
+    app.run(debug=True)

@@ -80,7 +80,7 @@ class BirthdayWishAugmentor:
             return "No wishes found for the predicted relationship."
 
         detected_tones = self.predict_tones(user_text)
-        print(f"🎭 Predicted Tone(s): {', '.join(detected_tones)}")
+        print(f"Predicted Tone(s): {', '.join(detected_tones)}")
 
         best_score = float('inf')
         best_wish = "Wishing you a fantastic birthday!"
@@ -99,13 +99,13 @@ class BirthdayWishAugmentor:
                 best_score = score
                 best_wish = row['quote']
 
-        print(f"\n🎁 Wish Found: {best_wish}")
+        print(f"\nWish Found: {best_wish}")
         best_wish_aug = self._augment_text_with_synonyms(best_wish)
 
         # White-box info
-        print(f"\n🔎 User Request: {user_text}")
-        print(f"💬 Predicted Relationship: {predicted_relationship}")
-        print(f"🎭 Predicted Tone(s): {', '.join(detected_tones)}")
-        print(f"\n🎁 Final Wish: {best_wish_aug}")
+        print(f"User Request: {user_text}")
+        print(f"Predicted Relationship: {predicted_relationship}")
+        print(f"Predicted Tone(s): {', '.join(detected_tones)}")
+        print(f"\nFinal Wish: {best_wish_aug}")
 
         return best_wish_aug
