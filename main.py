@@ -8,6 +8,7 @@ CORS(app)
 
 augmentor = BirthdayWishAugmentor(
     wishes_path='big_dataset.csv',
+    yaml_path='Synonym_Dictionary (2).yaml',
     vectorizer=Nlp.vectorizer,
     model_tone=Nlp.model_tone,
     model_rel=Nlp.model_rel,
@@ -17,6 +18,7 @@ augmentor = BirthdayWishAugmentor(
     predict_tones_fn=Nlp.predict_tones,
     predict_rel_fn=Nlp.predict_rel
 )
+
 
 @app.route('/generate-wish', methods=['POST'])
 def generate_wish():

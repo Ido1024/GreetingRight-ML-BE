@@ -34,7 +34,7 @@ lemmatizer = WordNetLemmatizer()
 
 # === Preprocessing ===
 def clean_text(text):
-    text = re.sub(r'(?i)\b(write|generate|give|make|say|create|wish|tell|compose)\b.*?(birthday|wish|message)?', '',
+    text = re.sub(r'(?i)\b(write|generate|give|make|say|create|wish|tell)\b.*?(birthday|wish|message)?', '',
                   text)
     text = text.lower()
     text = re.sub(r'[^a-z\s]', '', text)
