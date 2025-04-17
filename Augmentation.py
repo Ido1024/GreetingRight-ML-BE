@@ -5,6 +5,7 @@ import random
 from sklearn.metrics.pairwise import cosine_similarity
 from Nlp import preprocess_input
 
+
 class BirthdayWishAugmentor:
     def __init__(self, wishes_path, yaml_path, vectorizer, model_tone, model_rel, rel_encoder,
                  tone_cols, rel_cols, predict_tones_fn, predict_rel_fn):
@@ -69,7 +70,10 @@ class BirthdayWishAugmentor:
 
         return " ".join(tokens)
 
-    def recommend(self, user_text, tone_weight=0.3, tfidf_weight=0.7, debug=True, enable_augmentation=True):
+    def recommend(self, user_text, tone_weight=0.3, tfidf_weight=0.7, debug=True, enable_augmentation=True,
+                  blacklist_ids=None):
+        blacklist_ids = set(blacklist_ids or [])
+
         # Predict relationship and tone
         rel = self.predict_rel(user_text)
         tones = self.predict_tones(user_text)
@@ -79,14 +83,22 @@ class BirthdayWishAugmentor:
             print(f"Predicted Relationship: {rel}")
             print(f"Predicted Tone(s): {', '.join(tones)}")
 
-        # Filter by predicted relationship
+        # Filter by relationship
         filtered = self.wishes_df[self.wishes_df[rel] == 1].copy()
+
+        # Apply blacklist filter if needed
+        if blacklist_ids:
+            filtered = filtered[~filtered['id'].isin(blacklist_ids)]
+
         if filtered.empty:
-            return "No wishes found for that relationship."
+            return {
+                "wish": "No wishes found for that relationship.",
+                "wish_id": None
+            }
 
         user_vec = self.vectorizer.transform([preprocess_input(user_text)]).toarray()[0]
         best_score = float('inf')
-        best_wish = "Hope you have an amazing birthday!"
+        best_row = None
 
         for _, row in filtered.iterrows():
             tone_match = sum([row[t] for t in tones if t in self.tone_cols])
@@ -99,12 +111,23 @@ class BirthdayWishAugmentor:
 
             if score < best_score:
                 best_score = score
-                best_wish = row['quote']
+                best_row = row
 
-        final_wish = self._augment_text_with_synonyms(best_wish) if enable_augmentation else best_wish
+        if best_row is None:
+            return {
+                "wish": "Could not find a suitable wish.",
+                "wish_id": None
+            }
+
+        original_wish = best_row['quote']
+        final_wish = self._augment_text_with_synonyms(original_wish) if enable_augmentation else original_wish
+        wish_id = int(best_row['id'])  # Make sure it's a plain int (e.g., for JSON serialization)
 
         if debug:
             print(f"Final Score: {best_score:.4f}")
-            print(f"Final Selected Wish:\n{final_wish}")
+            print(f"Final Selected Wish (ID: {wish_id}):\n{final_wish}")
 
-        return final_wish
+        return {
+            "wish": final_wish,
+            "wish_id": wish_id
+        }
