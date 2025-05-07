@@ -12,6 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras import regularizers
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.utils import to_categorical
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 import random
 import tensorflow as tf
@@ -34,8 +35,6 @@ lemmatizer = WordNetLemmatizer()
 
 # === Preprocessing ===
 def clean_text(text):
-    text = re.sub(r'(?i)\b(write|generate|give|make|say|create|wish|tell)\b.*?(birthday|wish|message)?', '',
-                  text)
     text = text.lower()
     text = re.sub(r'[^a-z\s]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
@@ -123,8 +122,31 @@ callbacks = [
 model_tone.fit(X_train_vec, y_tone_train, validation_split=0.1, epochs=20, batch_size=32, callbacks=callbacks)
 model_rel.fit(X_train_vec, y_rel_train_cat, validation_split=0.1, epochs=20, batch_size=32, callbacks=callbacks)
 
+# === Evaluation ===
 
-# === Inference ===
+# Relationship Evaluation (Multi-class)
+y_rel_pred_probs = model_rel.predict(X_test_vec)
+y_rel_pred = np.argmax(y_rel_pred_probs, axis=1)
+
+print("\n=== Accuracy per Relationship ===")
+for i, label in enumerate(rel_encoder.classes_):
+    mask = (y_rel_test == i)
+    acc = accuracy_score(y_rel_test[mask], y_rel_pred[mask]) if np.any(mask) else 0
+    print(f"{label}: {acc:.2f}")
+
+# Tone Evaluation (Multi-label)
+y_tone_pred_probs = model_tone.predict(X_test_vec)
+y_tone_pred = (y_tone_pred_probs > 0.5).astype(int)
+
+print("\n=== Accuracy per Tone ===")
+for i, tone in enumerate(tone_cols):
+    y_true_col = y_tone_test[:, i]
+    y_pred_col = y_tone_pred[:, i]
+    acc = accuracy_score(y_true_col, y_pred_col)
+    print(f"{tone}: {acc:.2f}")
+
+
+# === Inference Functions ===
 def predict_tones(text):
     prepped = preprocess_input(text)
     tfidf = vectorizer.transform([prepped])
