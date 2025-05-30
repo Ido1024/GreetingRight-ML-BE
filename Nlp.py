@@ -35,9 +35,9 @@ lemmatizer = WordNetLemmatizer()
 
 # === Preprocessing ===
 def clean_text(text):
-    text = text.lower()
-    text = re.sub(r'[^a-z\s]', '', text)
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = text.lower() # Convert to lowercase
+    text = re.sub(r'[^a-z\s]', '', text) # Remove non-alphabetic characters
+    text = re.sub(r'\s+', ' ', text).strip() # Remove extra spaces
     return text
 
 
@@ -57,23 +57,23 @@ def preprocess_input(text):
 # === Load user request training data ===
 filepath = 'birthday_wish_requests.csv'
 df = pd.read_csv(filepath)
-df = df.sample(frac=1, random_state=SEED).reset_index(drop=True)
-df['user_request'] = df['user_request'].astype(str).fillna('').str.strip()
-df['user_request'] = df['user_request'].str.replace(r'^"|"$', '', regex=True)
-df = df[df['user_request'].str.split().str.len() > 3]
-df['lemmatized_text'] = df['user_request'].apply(preprocess_input)
+df = df.sample(frac=1, random_state=SEED).reset_index(drop=True) # Shuffle the dataset
+df['user_request'] = df['user_request'].astype(str).fillna('').str.strip() # Remove leading/trailing spaces
+df['user_request'] = df['user_request'].str.replace(r'^"|"$', '', regex=True) # Remove quotes
+df = df[df['user_request'].str.split().str.len() > 3] # Remove short requests
+df['lemmatized_text'] = df['user_request'].apply(preprocess_input) # Preprocess text
 
 tone_cols = ['Happy', 'Funny', 'Rhyming_Poem', 'Heartfelt', 'Short_and_Simple', 'Inspirational', 'Professional']
 rel_cols = ['Father', 'Mother', 'Wife', 'Husband', 'Boyfriend', 'Girlfriend', 'Son', 'Daughter',
             'Grandfather', 'Grandmother', 'Friend', 'Boss', 'Best-Friend']
 
-df = df[(df[tone_cols + rel_cols].sum(axis=1) > 0)]
-df.drop_duplicates(subset='lemmatized_text', inplace=True)
+df = df[(df[tone_cols + rel_cols].sum(axis=1) > 0)] # Filter out rows with no labels
+df.drop_duplicates(subset='lemmatized_text', inplace=True) # Remove duplicates
 
 X = df['lemmatized_text']
 y_tone = df[tone_cols].values
 rel_encoder = LabelEncoder()
-y_rel = rel_encoder.fit_transform(df[rel_cols].idxmax(axis=1))
+y_rel = rel_encoder.fit_transform(df[rel_cols].idxmax(axis=1)) # Convert to single integer labels
 
 X_train, X_test, y_tone_train, y_tone_test, y_rel_train, y_rel_test = train_test_split(
     X, y_tone, y_rel, test_size=0.2, stratify=y_rel, random_state=SEED
@@ -81,10 +81,10 @@ X_train, X_test, y_tone_train, y_tone_test, y_rel_train, y_rel_test = train_test
 
 # === Load and preprocess wish texts ===
 wishes_df = pd.read_csv('big_dataset.csv')
-wishes_df['quote'] = wishes_df['quote'].astype(str).fillna('')
-wishes_df['lemmatized_quote'] = wishes_df['quote'].apply(preprocess_input)
+wishes_df['quote'] = wishes_df['quote'].astype(str).fillna('') # Remove NaN values
+wishes_df['lemmatized_quote'] = wishes_df['quote'].apply(preprocess_input) # Preprocess text
 
-vectorizer = TfidfVectorizer(max_features=7000, stop_words='english', min_df=1)
+vectorizer = TfidfVectorizer(max_features=7000, stop_words='english', min_df=1) # Create TF-IDF vectorizer
 vectorizer.fit(wishes_df['lemmatized_quote'])
 
 X_train_vec = vectorizer.transform(X_train).toarray()
@@ -116,7 +116,7 @@ model_rel.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['a
 # === Training ===
 callbacks = [
     EarlyStopping(patience=3, monitor='val_loss', restore_best_weights=True),
-    ReduceLROnPlateau(patience=2, monitor='val_loss', factor=0.3)
+    ReduceLROnPlateau(patience=2, monitor='val_loss', factor=0.3) # Reduce learning rate by 30%, when a metric\accuracy has stopped improving
 ]
 
 model_tone.fit(X_train_vec, y_tone_train, validation_split=0.1, epochs=20, batch_size=32, callbacks=callbacks)

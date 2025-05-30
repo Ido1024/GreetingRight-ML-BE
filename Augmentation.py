@@ -28,7 +28,7 @@ class BirthdayWishAugmentor:
             if col not in self.wishes_df.columns:
                 self.wishes_df[col] = 0
 
-        # Preprocess and vectorize all wishes
+                # Preprocess and vectorize all wishes
         self.wishes_df['lemmatized_quote'] = self.wishes_df['quote'].apply(preprocess_input)
         self.wishes_df['tfidf'] = list(self.vectorizer.transform(self.wishes_df['lemmatized_quote']).toarray())
 
@@ -39,7 +39,7 @@ class BirthdayWishAugmentor:
         relationship_synonyms = data.get("Relationship_Synonyms", [])
         combined = birthday_synonyms + relationship_synonyms
 
-        mapping = {}
+        mapping = {} # Create a mapping for each synonym combination in the yaml
         for group in combined:
             if isinstance(group, list):
                 group = [w for w in group if isinstance(w, str)]
@@ -49,7 +49,7 @@ class BirthdayWishAugmentor:
 
     def _augment_text_with_synonyms(self, text, min_replacements=1):
         tokens = text.split()
-        indexed_tokens = []
+        indexed_tokens = [] # List to store tokens that can be replaced
         for i, token in enumerate(tokens):
             clean = token.strip(",.!?;:\"'()[]{}").lower()
             if clean in self.synonym_map:
@@ -61,6 +61,7 @@ class BirthdayWishAugmentor:
         num_to_replace = min(min_replacements, len(indexed_tokens))
         indices_to_replace = random.sample(indexed_tokens, k=num_to_replace)
 
+        # Ensure we don't replace the same word multiple times
         for i, word in indices_to_replace:
             replacement = random.choice(self.synonym_map[word])
             if tokens[i][0].isupper():
@@ -96,15 +97,15 @@ class BirthdayWishAugmentor:
                 "wish_id": None
             }
 
-        user_vec = self.vectorizer.transform([preprocess_input(user_text)]).toarray()[0]
-        best_score = float('inf')
+        user_vec = self.vectorizer.transform([preprocess_input(user_text)]).toarray()[0]  # Convert to 1D array
+        best_score = float('inf')  # Initialize to infinity
         best_row = None
 
         for _, row in filtered.iterrows():
-            tone_match = sum([row[t] for t in tones if t in self.tone_cols])
-            tone_score = 1 - (tone_match / len(tones)) if tones else 1
+            tone_match = sum([row[t] for t in tones if t in self.tone_cols])  # Count matching tones
+            tone_score = 1 - (tone_match / len(tones)) if tones else 1  # Normalize to [0, 1]
 
-            tfidf_sim = cosine_similarity([user_vec], [row['tfidf']])[0][0]
+            tfidf_sim = cosine_similarity([user_vec], [row['tfidf']])[0][0]  # Normalize to [0, 1]
             tfidf_dist = 1 - tfidf_sim
 
             score = (tone_weight * tone_score) + (tfidf_weight * tfidf_dist)
@@ -121,7 +122,7 @@ class BirthdayWishAugmentor:
 
         original_wish = best_row['quote']
         final_wish = self._augment_text_with_synonyms(original_wish) if enable_augmentation else original_wish
-        wish_id = int(best_row['id'])  # Make sure it's a plain int (e.g., for JSON serialization)
+        wish_id = int(best_row['id'])  # Make sure it's a plain int (e.g., for JSON)
 
         if debug:
             print(f"Final Score: {best_score:.4f}")

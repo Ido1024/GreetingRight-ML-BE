@@ -35,7 +35,7 @@ def generate_wish():
         # Generate a wish while excluding blacklisted IDs
         result = augmentor.recommend(text, blacklist_ids=blacklist_ids)
         print(f"The new wish is: {result}")
-        return jsonify(result)  # <-- This now returns both 'wish' and 'wish_id'
+        return jsonify(result)  # This returns both 'wish' and 'wish_id'
     except Exception as e:
         print(f"[ERROR] {e}")
         return jsonify({'error': 'Internal error'}), 500
